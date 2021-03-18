@@ -11,9 +11,9 @@ ContextUPtr Context::Create() {
 bool Context::Init() {
 
   float vertices[] = {
-    -0.5f, -0.5f, 0.0f,
-    0.5f, -0.5f, 0.0f,
-    0.0f, 0.5f, 0.0f,
+      -0.5f, -0.5f, 0.0f,
+      0.5f, -0.5f, 0.0f,
+      0.0f, 0.5f, 0.0f,
   };
 
   glGenVertexArrays(1, &m_vertexArrayObject);

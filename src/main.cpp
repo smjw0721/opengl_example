@@ -1,16 +1,9 @@
-#include "common.h"
 #include "context.h"
-#include "program.h"
-
-
 #include <spdlog/spdlog.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-void OnFramebufferSizeChange(GLFWwindow* window, int width, int height) {
-    SPDLOG_INFO("framebuffer size changed: ({} x {})", width, height);
-    glViewport(0, 0, width, height);
-}         
+        
 void OnKeyEvent(GLFWwindow* window,
     int key, int scancode, int action, int mods) {
     SPDLOG_INFO("key: {}, scancode: {}, action: {}, mods: {}{}{}",
@@ -25,6 +18,10 @@ void OnKeyEvent(GLFWwindow* window,
         glfwSetWindowShouldClose(window, true);
     }
 }
+void OnFramebufferSizeChange(GLFWwindow* window, int width, int height) {
+    SPDLOG_INFO("framebuffer size changed: ({} x {})", width, height);
+    glViewport(0, 0, width, height);
+} 
 
 int main(int argc, const char** argv){
     SPDLOG_INFO("Start program");
@@ -38,6 +35,10 @@ int main(int argc, const char** argv){
         return -1;
     }
 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
     // glfw 윈도우 생성, 실패하면 에러 출력후 종료
     SPDLOG_INFO("Create glfw window");
     auto window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME,
@@ -77,19 +78,11 @@ SPDLOG_INFO("program id: {}", program->Get());
     glfwSetFramebufferSizeCallback(window,OnFramebufferSizeChange);
     glfwSetKeyCallback(window,OnKeyEvent);
 
-
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-
     // glfw 루프 실행, 윈도우 close 버튼을 누르면 정상 종료
     SPDLOG_INFO("Start main loop");
     while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-        glClearColor(0.33f,  0.5f, 0.15f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+       glfwPollEvents();
+        context->Render();
         glfwSwapBuffers(window);
     }
     context.reset();
