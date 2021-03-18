@@ -1,3 +1,8 @@
+#include "common.h"
+#include "context.h"
+#include "program.h"
+
+
 #include <spdlog/spdlog.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -5,8 +10,7 @@
 void OnFramebufferSizeChange(GLFWwindow* window, int width, int height) {
     SPDLOG_INFO("framebuffer size changed: ({} x {})", width, height);
     glViewport(0, 0, width, height);
-}
-
+}         
 void OnKeyEvent(GLFWwindow* window,
     int key, int scancode, int action, int mods) {
     SPDLOG_INFO("key: {}, scancode: {}, action: {}, mods: {}{}{}",
@@ -54,6 +58,21 @@ if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 auto glVersion = glGetString(GL_VERSION);
 SPDLOG_INFO("OpenGL context version: {}", glVersion);
 
+auto context = Context::Create();
+if (!context) {
+  SPDLOG_ERROR("failed to create context");
+  glfwTerminate();
+  return -1;
+}
+
+ShaderPtr vertShader = Shader::CreateFromFile("./shader/simple.vs", GL_VERTEX_SHADER);
+ShaderPtr fragShader = Shader::CreateFromFile("./shader/simple.fs", GL_FRAGMENT_SHADER);
+SPDLOG_INFO("vertex shader id: {}", vertShader->Get());
+SPDLOG_INFO("fragment shader id: {}", fragShader->Get());
+
+auto program = Program::Create({fragShader, vertShader});
+SPDLOG_INFO("program id: {}", program->Get());
+
     OnFramebufferSizeChange(window, WINDOW_WIDTH, WINDOW_HEIGHT);   
     glfwSetFramebufferSizeCallback(window,OnFramebufferSizeChange);
     glfwSetKeyCallback(window,OnKeyEvent);
@@ -69,10 +88,11 @@ SPDLOG_INFO("OpenGL context version: {}", glVersion);
     SPDLOG_INFO("Start main loop");
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        glClearColor(0.0f, 0.9f, 0.2f, 0.0f);
+        glClearColor(0.33f,  0.5f, 0.15f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glfwSwapBuffers(window);
     }
+    context.reset();
 
     glfwTerminate();
     return 0;
