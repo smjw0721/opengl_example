@@ -99,7 +99,7 @@ set(DEP_LIST ${DEP_LIST} dep_stb)
         imgui/imgui_impl_opengl3.cpp
     )
     target_include_directories(imgui PRIVATE ${DEP_INCLUDE_DIR})
-    add_dependencies(imgui ${DEP_LIST})
+    #add_dependencies(imgui ${DEP_LIST})
     set(DEP_INCLUDE_DIR ${DEP_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
     set(DEP_LIST ${DEP_LIST} imgui)
     set(DEP_LIBS ${DEP_LIBS} imgui)
