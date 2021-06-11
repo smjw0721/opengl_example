@@ -40,37 +40,38 @@ void Texture::SetBorderColor(const glm::vec4& color) const {
     glm::value_ptr(color));
 }
 
-void Texture::SetTextureFormat(int width, int height,uint32_t format, uint32_t type) {
-    m_width = width;
-    m_height = height;
-    m_format = format;
-    m_type = type;
-
+    static GLenum GetImageFormat(uint32_t internalFormat) {
     GLenum imageFormat = GL_RGBA;
-    if (m_format == GL_DEPTH_COMPONENT) {
+    if (internalFormat == GL_DEPTH_COMPONENT) {
         imageFormat = GL_DEPTH_COMPONENT;        
     }
-    else if (m_format == GL_RGB ||
-        m_format == GL_RGB16F ||
-        m_format == GL_RGB32F) {
+    else if (internalFormat == GL_RGB ||
+        internalFormat == GL_RGB16F ||
+        internalFormat == GL_RGB32F) {
         imageFormat = GL_RGB;
     }
-    else if (m_format == GL_RG ||
-    m_format == GL_RG16F ||
-    m_format == GL_RG32F) {
-    imageFormat = GL_RG;
+    else if (internalFormat == GL_RG ||
+        internalFormat == GL_RG16F ||
+        internalFormat == GL_RG32F) {
+        imageFormat = GL_RG;
     }
-    else if (m_format == GL_RED ||
-        m_format == GL_R ||
-        m_format == GL_R16F ||
-        m_format == GL_R32F) {
+    else if (internalFormat == GL_RED ||
+        internalFormat == GL_R ||
+        internalFormat == GL_R16F ||
+        internalFormat == GL_R32F) {
         imageFormat = GL_RED;
     }
+    return imageFormat;
+    }
+    void Texture::SetTextureFormat(int width, int height,uint32_t format, uint32_t type) {
+        m_width = width;
+        m_height = height;
+        m_format = format;
+        m_type = type;
+
+    GLenum imageFormat = GetImageFormat(m_format);
  
-  glTexImage2D(GL_TEXTURE_2D, 0, m_format,
-    m_width, m_height, 0,
-    imageFormat, m_type,
-    nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, m_format,m_width, m_height, 0,imageFormat, m_type,nullptr);
 }
 void Texture::CreateTexture() {
     glGenTextures(1, &m_texture);
@@ -93,11 +94,19 @@ void Texture::SetTextureFromImage(const Image* image) {
     m_height = image->GetHeight();
     m_format = format;
     m_type = GL_UNSIGNED_BYTE;
+    if (image->GetBytePerChannel() == 4) {
+        m_type = GL_FLOAT;
+        switch (image->GetChannelCount()) {
+        default: break;
+        case 1: m_format = GL_R16F; break;
+        case 2: m_format = GL_RG16F; break;
+        case 3: m_format = GL_RGB16F; break;
+        case 4: m_format = GL_RGBA16F; break;
+    }
+  }
  
-    glTexImage2D(GL_TEXTURE_2D, 0, m_format,
-    m_width, m_height, 0,
-    format, m_type,
-    image->GetData());
+    glTexImage2D(GL_TEXTURE_2D, 0, m_format,m_width, m_height, 0,
+        format, m_type,image->GetData());
 
     glGenerateMipmap(GL_TEXTURE_2D);
     }
@@ -107,6 +116,12 @@ void Texture::SetTextureFromImage(const Image* image) {
     if (!texture->InitFromImages(images))
         return nullptr;
     return std::move(texture);
+    }
+
+    CubeTextureUPtr CubeTexture::Create(int width, int height,uint32_t format, uint32_t type) {
+        auto texture = CubeTextureUPtr(new CubeTexture());
+        texture->Init(width, height, format, type);
+        return std::move(texture);
     }
 
     CubeTexture::~CubeTexture() {
@@ -129,6 +144,11 @@ void Texture::SetTextureFromImage(const Image* image) {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+    m_width = images[0]->GetWidth();
+    m_height = images[0]->GetHeight();
+    m_type = images[0]->GetBytePerChannel() == 4 ? GL_FLOAT : GL_UNSIGNED_BYTE;
+    m_format = images[0]->GetBytePerChannel() == 4 ? GL_RGB16F : GL_RGB;
+
     for (uint32_t i = 0; i < (uint32_t)images.size(); i++) {
         auto image = images[i];
         GLenum format = GL_RGBA;
@@ -139,11 +159,38 @@ void Texture::SetTextureFromImage(const Image* image) {
             case 3: format = GL_RGB; break;
         }
 
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
-        image->GetWidth(), image->GetHeight(), 0,
-        format, GL_UNSIGNED_BYTE,
-        image->GetData());
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, m_format,
+            m_width, m_height, 0, format, m_type, image->GetData());
     }
 
     return true;
+    }
+
+    void CubeTexture::Init(int width, int height, int format, uint32_t type) {
+        glGenTextures(1, &m_texture);
+    Bind();
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    m_width = width;
+    m_height = height;
+    m_type = type;
+    m_format = format;
+    GLenum imageFormat = GetImageFormat(m_format);
+
+    for (uint32_t i = 0; i < 6; i++) {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, m_format,
+        m_width, m_height, 0, imageFormat, m_type, nullptr);
+    }
+}
+
+    void CubeTexture::GenerateMipmap() const {
+    Bind();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
     }
